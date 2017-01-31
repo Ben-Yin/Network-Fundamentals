@@ -1,0 +1,73 @@
+#!/bin/bash
+
+USERNAME=""
+KEYFILE=""
+PORT=""
+
+DEST_DIR="~/SimpleCDN"
+
+DNSSERVER_ADDR="cs5700cdnproject.ccs.neu.edu"
+
+# warning message when input params are erroneous
+usage="usage: runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>"
+
+if [ $# != 10 ]
+then
+    echo "runCDN: num of params should be 10"
+    echo $usage
+    exit -1
+fi
+
+while [[ $# -gt 0 ]]
+do
+option="$1"
+case $option in
+    -p)
+        PORT="$2"
+        shift
+        ;;
+    -o)
+        ORIGIN="$2"
+        shift
+        ;;
+    -n)
+        NAME="$2"
+        shift
+        ;;
+    -u)
+        USERNAME="$2"
+        shift
+        ;;
+    -i)
+        KEYFILE="$2"
+        shift
+        ;;
+    -*)
+        echo "runCDN: illegal option -$option"
+        echo $usage
+        exit -1
+        ;;
+esac
+shift
+done
+
+if [ -z ${USERNAME} ] || [ -z ${KEYFILE} ] || [ -z ${PORT} ]
+then
+    echo $usage
+    echo "username, keyfile and port must be provided!"
+    exit -1
+fi
+
+echo "-----start running HTTP servers-----"
+while read line
+do
+    replicaIp=`echo ${line} | awk '{print $1}'`
+    echo "run HTTP server on: ${replicaIp} ..."
+    ssh -i ${KEYFILE} ${USERNAME}@${replicaIp} "cd ${DEST_DIR} && screen -d -m ./httpserver -p ${PORT} -o ${ORIGIN}" </dev/null
+done<ec2_hosts
+
+echo "-----start running DNS server-----"
+echo "run DNS server on: ${DNSSERVER_ADDR} ..."
+ssh -i ${KEYFILE} ${USERNAME}@${DNSSERVER_ADDR} "cd ${DEST_DIR} && screen -d -m ./dnsserver -p ${PORT} -n ${NAME}" </dev/null
+
+echo "Congratulations! CDN has started!"

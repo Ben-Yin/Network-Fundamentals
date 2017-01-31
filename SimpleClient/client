@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# set default value for PORT and SSL
+PORT=27993
+SSL=false
+
+# warning message when input params are erroneous
+usage="usage: client [-s] [-p port] host nuid"
+
+if [ $# -lt 2 ]
+then
+    echo "client: num of params should >= 2"
+    echo $usage
+    exit -1
+fi
+
+while [[ $# -gt 2 ]]
+do
+option="$1"
+case $option in
+    -p)
+        PORT="$2"
+        shift
+        ;;
+    -s)
+        SSL=true
+        ;;
+    -*)
+        echo "client: illegal option -$option"
+        echo $usage
+        exit -1
+        ;;
+esac
+shift
+done
+
+HOST_NAME="$1"
+NEU_ID="$2"
+
+#echo "${PORT}"
+#echo "${SSL}"
+#echo "${HOST_NAME}"
+#echo "${NEU_ID}"
+
+# start the client
+java Main "${PORT}" "${SSL}" "${HOST_NAME}" "${NEU_ID}"

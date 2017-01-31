@@ -1,0 +1,78 @@
+#!/bin/bash
+
+USERNAME=""
+KEYFILE=""
+
+DEST_DIR="~/SimpleCDN"
+HTTPSERVER_FILES="http jar utils httpserver makefile"
+DNSSERVER_FILES="dns jar jar_dns utils dnsserver makefile"
+
+DNSSERVER_ADDR="cs5700cdnproject.ccs.neu.edu"
+
+# warning message when input params are erroneous
+usage="usage: deployCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>"
+
+while [[ $# -gt 0 ]]
+do
+option="$1"
+case $option in
+    -p)
+        PORT="$2"
+        shift
+        ;;
+    -o)
+        ORIGIN="$2"
+        shift
+        ;;
+    -n)
+        NAME="$2"
+        shift
+        ;;
+    -u)
+        USERNAME="$2"
+        shift
+        ;;
+    -i)
+        KEYFILE="$2"
+        shift
+        ;;
+    -*)
+        echo "deployCDN: illegal option -$option"
+        echo $usage
+        exit -1
+        ;;
+esac
+shift
+done
+
+# make sure the username and keyfile are not empty
+if [ -z ${USERNAME} -o -z ${KEYFILE} ]
+then
+    echo $usage
+    echo "username and keyfile must be provided!"
+    exit -1
+fi
+
+echo "-----start deploying HTTP servers-----"
+while read line
+do
+    replicaIp=`echo ${line} | awk '{print $1}'`
+    echo "deploy HTTP server on: ${replicaIp} ..."
+    echo "create destination directory ..."
+    ssh -i ${KEYFILE} ${USERNAME}@${replicaIp} "[ -d ${DEST_DIR} ] && echo folder already exists || mkdir -p ${DEST_DIR} && rm -rf ${DEST_DIR}/*" </dev/null
+    echo "copy files ..."
+    scp -r -i ${KEYFILE} ${HTTPSERVER_FILES} ${USERNAME}@${replicaIp}:${DEST_DIR} > /dev/null 2>&1
+    echo "compile code ..."
+    ssh -i ${KEYFILE} ${USERNAME}@${replicaIp} "cd ${DEST_DIR} && make clean > /dev/null && make http > /dev/null" </dev/null
+done<ec2_hosts
+
+echo "-----start deploying DNS server-----"
+echo "deploy DNS server on: ${DNSSERVER_ADDR} ..."
+echo "create destination directory ..."
+ssh -i ${KEYFILE} ${USERNAME}@${DNSSERVER_ADDR} "[ -d ${DEST_DIR} ] && echo folder already exists || mkdir -p ${DEST_DIR}" </dev/null
+echo "copy files ..."
+scp -r -i ${KEYFILE} ${DNSSERVER_FILES} ${USERNAME}@${DNSSERVER_ADDR}:${DEST_DIR} > /dev/null 2>&1
+echo "compile code ..."
+ssh -i ${KEYFILE} ${USERNAME}@${DNSSERVER_ADDR} "cd ${DEST_DIR} && make clean > /dev/null && make dns > /dev/null" </dev/null
+
+echo "Congratulations! CDN deployment has finished!"

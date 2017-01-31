@@ -1,0 +1,85 @@
+The goal of this project is to take a URL on the command line and downloads the associated file. 
+We implemented protocol stacks from Data-link Layer to Application Layer, including building 
+the Ethernet, IP and TCP headers in each packet. We learned some code and protocol format 
+arguments from Wikipedia, Python Official Documentation and some technical blogs.
+
+Implementation of Each Layer:
+We implement the protocol stack as below:
+--------------------------------------------------------------------------
+|                 |           |                    |           |         |
+| Ethernet Header | IP Header |     TCP Header     | HTTP Data | Padding |
+|                 |           |                    |           |         |
+--------------------------------------------------------------------------
+|     14 byte     |  20 byte  |   20 byte or more  |           |add to 64|
+--------------------------------------------------------------------------
+
+Data-link Layer:
+We used AF_PACKET raw socket, which bypasses the operating systems layer-2 stack. So we implemented
+Ethernet Frame by ourselves. The Ehternet Frame could be used for packing IP datagram and ARP
+packet. 
+
+At first, we used ARP boardcast to query the destination hardware address, in particular it will be
+gateway MAC address. To achieve this, we get gateway IP address from route table, then
+we set Ethernet Frame THA (Target Hardware Address) to the broadcast address:"FF:FF:FF:FF:FF:FF" 
+to send the ARP request to each host in LAN until we get the respond ARP packet from gateway 
+with its MAC address.
+
+After that, we have SHA, THA, SPA, TPA and every other things we need. We packed the IP Datagram into
+Ethernet Frame as the data field. And then we implemented Ethernet Socket to send and receive the 
+Ethernet Frame with the full IP Datagram as its data, because the minimum frame size is 64 byte,
+if the frame is shorter than it, Ethernet Frame will add some "0000" as padding at the end until
+reach 64 byte.
+
+
+Network Layer:
+The implementation of IP Datagram is basically the same as IPv4, including Src IP Address, 
+Dest IP Address, Version, Length, Flag, Fragment Offset, TTL and Checksum. 
+
+The checksum is calculated by forming the ones' complement of the ones' complement sum of the header's 
+16-bit words. The result of summing entire IP header, including checksum, should be zero if there is 
+no corruption. At each hop, the checksum is recalculated and the packet will be discarded upon 
+checksum mismatch.
+
+After the calculation of Checksum, we place the result in the Checksum field of the sending packet.
+And we implement a IP socket to send and receive the IP datagram, which contains the TCP packet as
+its data field.
+
+
+Transport Layer:
+In this layer, we implemented the TCP protocol, with functionality like Checksum, Congestion
+Window and advertised Window.
+
+==================================================================
+
+Challenges:
+1, One of the most difficult problem we faced was Checksum. 
+	At first, Checksum calculated correctly when sending a packet, but received packets was mismatch.
+	We found out that we should not calculated the received packets as the sending packet, which
+	will lead the result of checksum not match with the received packet checksum field.
+	Finally, we figured out that we should calculate the whole header including checksum field to 
+	see if the result is 0. 0 means the checksum is correct.
+
+2, Query for destnation hardware address is also a challenging part. 
+	We studied many details of Ethernet Frame and ARP packet from the Internet and tried to implement 
+	on our own. We hand-craft the ARP and pack it into the ethernet frame, receive the respond ARP
+	then unpack it to get the target MAC address.
+
+3, "padding" of Ethernet Frame.
+	After we implemented the Ethernet Frame and APR. TCP Checksum was not working again, the result
+	was smaller than the correct one in a fixed number. For example, the correct one should be "43C3",
+	we get "41C3", and so on. After we searched on stack overflow and wikipedia, the answer to the 
+	question is that the Ethernet Frame received from Server will add some "0000" at the end of 
+	packet as "padding" if the length is less than 64 bytes.
+
+4, Congestion Window and Advertised Window
+   The congestion window and advertised window are the most tricky part in this project. The congestion
+   window should be set to 1 initially, increased 1 after receiving each ack and reset to 1 when packet
+   drop. The advertised window is set by the receiver, which would put a field in the TCP header.
+   The way we implement them is to maintain a queue, put all output data in the queue and send them 
+   based on the window size and data length. The sent segments will be cached until they are acked. The
+   window size will be adjusted dynamically in this process based on the data sent and acks received.
+   And the process will end until all segments in the queue have been sent.
+5, Testing
+   Another difficult part for use is testing. Since the normal network is always stable, we can hardly
+   experience some abnormal packets, such as packet drop, delay, or duplicates. So we asked a quesiton
+   on Piazza, and get to know a great tool - Netem, then we used it to test our program.

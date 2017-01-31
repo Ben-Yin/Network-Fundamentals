@@ -1,0 +1,45 @@
+The goal of this program is to implement a web crawler which can traverse a fake social networking website, and collect
+5 secret flags hidden in the pages. To achieve this goal, we should firstly build a basic library based on socket, which
+can send HTTP requests to the server and handle corresponding HTTP responses. Then we can use the username and password,
+along with the lib, to simulate the login process. Finally, we need to traverse every relevant link with the DFS algorithm,
+get secret flags by parsing the HTML content until all five of them are collected.
+
+
+High-level Approach:
+1. Use socket to encapsulate a simple HttpClient;
+2. Parse links and secret flags from the HTML content with regular expression;
+3. Use a Queue to store the new links, and visit them one by one;
+4. Use a HashSet to record the visited links, check whether a link is in the set before opening it to avoid infinite loop.
+
+
+Challenges:
+1. In the beginning of simulating login, we tried to directly transfer user name and password as body in our HTTP POST
+   request of the login page, but the server always returned "CSRF verification failed" with a 403 code. After careful
+   check of the HTTP headers, we found that the server will return a random csrf token at the first time we visited the
+   page. And then both the HTTP header and body in the request should contain this token in order to pass the server's verification.
+   So next, we added the process in our code, and solved this problem.
+2. The first version of our crawler will take up to 4 minutes to find all 5 secret flags. In order to shorten the time,
+   we checked our code and knew the performance bottleneck should be the numerous of HTTP request. Then we added multiple threads
+   to the process of HTTP requests, and shortened the execution time to about 1 minute.
+3. Regular Expression is used to match the Secret Flag label
+   <h2 class='secret_flag' style="color:red">FLAG: 64-characters-of-random-alphanumerics</h2>
+   But at first I missed the "FLAG:" before the content of secret flag, which causes the program can not find any secret flag.
+   After checking every part of the program, finally found the mistake of this Regular Expression.
+
+
+Tests:
+To test our program, we tried the following 4 test cases:
+1. Input the right user name and password:
+         ./webcrawler 001221610 HMHB1D36
+   then the program will start crawling and output the five secret flags in the end.
+
+2. Input parameters with the number < 2:
+         ./webcrawler 001221610
+   the program will exit directly and warn that the number of parameters should be 2.
+
+3. Input the wrong user name or password:
+         ./webcrawler 001221610 HMHB1D36
+   the program will exit with the error message "Failed to login fakebook!"
+
+4. Change the fakebook address to a wrong one to simulate the scenario when the server is crashed,
+   the program will exit with the error message "Fail to connect to target server!"

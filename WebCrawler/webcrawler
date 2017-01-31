@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# warning message when input params are erroneous
+usage="usage: webcrawler [username] [password]"
+
+if [ $# -ne 2 ]
+then
+    echo "webcrawler: num of params should be 2"
+    echo $usage
+    exit -1
+fi
+
+USER_NAME="$1"
+PASSWORD="$2"
+
+# start the client
+java Main "${USER_NAME}" "${PASSWORD}" 

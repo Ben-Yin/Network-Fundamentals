@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# warning message when input params are erroneous
+usage="usage: httpserver -p <port> -o <origin>"
+
+if [ $# != 4 ]
+then
+    echo "httpserver: num of params should be 4"
+    echo $usage
+    exit -1
+fi
+
+while [[ $# -gt 0 ]]
+do
+option="$1"
+case $option in
+    -p)
+        PORT="$2"
+        shift
+        ;;
+    -o)
+        ORIGIN="$2"
+        shift
+        ;;
+    -*)
+        echo "httpserver: illegal option -$option"
+        echo $usage
+        exit -1
+        ;;
+esac
+shift
+done
+
+# echo "${PORT}"
+# echo "${ORIGIN}"
+
+# start the http server
+java -cp jar/json-simple-1.1.1.jar:. http.HttpServer "${PORT}" "${ORIGIN}"

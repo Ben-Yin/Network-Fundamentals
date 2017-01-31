@@ -1,0 +1,39 @@
+HTTP server:
+For HTTP server, we use a built-in library in the "com.sun.net.httpserver" package to implement it.
+After the server is started, we use a handler (namely a proxy) to process all requests sent from clients. Before
+ making the response, we check whether the requested page is in the cache. If it's in the cache, we return the data in
+ the local file directly. Otherwise we will get data from the origin server by http request, and then write it into
+ cache based on the cache algorithm.
+
+DNS server:
+For DNS server, we use the DatagramSocket, that is, implement it based on UDP.
+After the server is started, we listen to the startup port to capture all DNS requests and then parse them according to
+ the DNS protocol specification. If it's a DNS query and the query domain name is the specific one used in this project
+ , we will use the request IP address, together with current measurements of all replica servers, to compute the best
+ replica server for this request. After that, we build an answer containing the result IP and write back into the socket.
+
+
+To improve the performance, we use the cache mechanism to "memory" the pages that have been requested.
+And since the disk quota for our cache is 10MB, to enhance the hit rate while limiting the total cache size, we use a
+cache algorithm - ARC, to fulfill the cache function.
+
+
+challenges:
+1. The implementation of DNS server is a bit tricky, since we need to compose the DNS packet manually, which is not
+ familiar to us;
+2. The ARC cache algorithm is not quite easy to implement, because it's a more advanced algorithm than the commonly used
+ LRU.
+
+
+We also write script to easily manage the multiple servers of our CDN.
+Through running these scripts, we can deploy/run/stop CDN with only one command.
+Typical use for them are shown as following:
+
+for deploy:
+./deployCDN -p 40017 -o http://ec2-54-167-4-20.compute-1.amazonaws.com:8080 -n cs5700cdn.example.com -u fredzhang -i id_rsa_cs5700
+
+for run:
+./runCDN -p 40017 -o http://ec2-54-167-4-20.compute-1.amazonaws.com:8080 -n cs5700cdn.example.com -u fredzhang -i id_rsa_cs5700
+
+for stop:
+./stopCDN -p 40017 -o http://ec2-54-167-4-20.compute-1.amazonaws.com:8080 -n cs5700cdn.example.com -u fredzhang -i id_rsa_cs5700

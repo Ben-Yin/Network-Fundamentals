@@ -1,0 +1,76 @@
+SimpleClient
+
+The final purpose of this program is to receive a 64-byte string called "Secret Flag" from CCIS Server. 
+To achieve this goal, this program serves as a client to communicate with CCIS Server using TCP Socket. 
+In order to run this program, we need users to provide: 1) ServerName, 2) Port, 3) NUID, 4) a flag indicating using SSL connection or not. 
+By default, the Port will be 27993 and the SSL connection will not work. But if the ServerName or NUID is not provided, the program can not run successfully and will exit directly.
+
+---------------------------------------------------------------------
+
+Here is how our client program runs. 
+First of All, the client program will try to connect the server, with or without SSL. 
+After connected successfully, client program sends a HELLO message like below.
+
+	"cs5700fall2016 HELLO [your NEU ID]\n"
+
+Then, client program should receive a STATUS message, which contains a mathematical expression like below.
+
+	"cs5700fall2016 STATUS [a number] [a math operator] [another number]\n"
+
+To respond these messages, the client program calculates the expression, and returns the solution in a message shown below.
+
+	"cs5700fall2016 [the solution]\n"
+
+After hundreds of the "STATUS - SOLUTION" cycles, the server returns this client program the 64-byte "Secret Flag", as you should see on the screen.
+
+---------------------------------------------------------------------
+
+To simplify the process of running the program and to ensure the invalid input parameters won't cause the crash of the program, we use a script as an entrance of our program. 
+If the parameters are all correct, the program should run well, or else the program will exit "gracefully".
+For example, your NUID is 001267001, and the server is "cs5700f16.ccs.neu.edu" (port:27993). the script should be:
+
+	$ ./client cs5700f16.ccs.neu.edu 001267001
+
+If you want to using SSL connection, you should add "-s" option, and the port may be changed too, like:
+
+	$ ./client -p 27994 -s cs5700f16.ccs.neu.edu 001267001
+
+Simple as that, the program will run automatically. And if the connection can be built, the final secret flag will be printed like:
+
+	bb8bca51eeea544a9ba4566b06515bd503803e657d44f4e4a184012072e9c1b9
+
+---------------------------------------------------------------------
+
+To test the program, we firstly tried the right parameters, to ensure that the program could run well:
+   $ ./client -p 27993 cs5700f16.ccs.neu.edu 001267001
+   $ ./client cs5700f16.ccs.neu.edu 001267001
+   $ ./client -p 27994 -s cs5700f16.ccs.neu.edu 001267001
+
+Then we used several problematic combinations of input parameters, like below:
+    $ ./client -a cs5700f16.ccs.neu.edu 001267001
+    $ ./client cs5700f16.ccs.neu.edu
+    $ ./client
+Within our expectation, the program will not accept these parameters and will terminate directly with an error message. 
+
+We also tried other test cases, like providing an invalid ServerName or Port, giving a non-existed NUID, which are shown below:
+    $ ./client test.ccs.neu.edu 001267001
+    $ ./client -p 1234 cs5700f16.ccs.neu.edu 001267001
+    $ ./client cs5700f16.ccs.neu.edu 123456789
+As such, the program will act normally and print the proper error messages.
+
+---------------------------------------------------------------------
+
+Contributor: Kaibin Yin
+
+The greatest challenge I faced in this program is that, the very original version of the program could not connect to the server(cs5700f16.ccs.neu.edu). 
+I asked question on piazza, and my classmates told me they had the same problem. But they mentioned that I should try to connect cs5700.ccs.neu.edu instead. 
+But it was still not working when I was at home. I thought the reason was the bugs in my program, but actually the problem was that the server just don't permit the connection from the outside network. 
+So I asked some of my friends about how to use the VPN of NEU to get access of the CCIS server.  Therefore I tried to use VPN to connect, everything run as well as possible. 
+
+Contributor: Chi Zhang
+
+One challenge for me is that I was not familiar with the concept of SSL connections before. So I searched it from Google and then got clear on its theory after reading several articles.
+I knew that we should firstly create a certificate repository, and add the server's certificate into the repository. 
+Then, before connecting to the server with SSL connection, the client should add the repository, so that the client and server can establish secure connection through handshaking.
+And all of the following process is the same with the normal socket.
+So after that, I created the certificate with the help of “keytool”, read the documentation of SSLSocket in JAVA, and implemented the code.

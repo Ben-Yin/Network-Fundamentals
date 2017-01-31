@@ -1,0 +1,57 @@
+This project contains three experiments, which are designed to analyze and contrast the performance of different TCP variants, including TCP Tahoe, Reno, NewReno, Vegas, SACK, and others.
+To run these experiments, we use NS-2(Network Simulator 2) to simulate the network topology and data flows on the links. We also consider the complexity of the real-world Internet and design different scenerios.
+After running the simulator, we use simple python scripts to parse the raw experiment results, and generate plot graphs with gnuplot to get intuitive performance of TCP variants and contrast them. To ensure the result is statistically significant, we need also do a series of statistical hypothesis testing.
+Finally, we analysis these experiment results, incorporate the methodologies and conclusions into a paper as the project report.
+
+Network Topology:
+N1              N4
+  \            /
+   \          /
+    N2------N3
+   /         \
+  /           \
+N5             N6
+
+
+######Experiment 1: TCP Performance Under Congestion######
+
+Scenarios:
+1. Simultaneously start the 1Mbps CBR flow (N2-N3) and TCP flow (N1-N4), then record the performance of different TCP variants
+2. Increase the CBR flow to a rate that several TCP variants of them have packet drops
+3. Increase the CBR flow to a rate that all TCP variants have packet drops
+4. Change the start sequence of CBR and TCP flow to observe whether it will have an effect on the experiment result
+
+Result Analysis:
+1. Collect the throughput, latency and number of dropped packets of the TCP variants in the above scenerios, compute the average value and compare them
+2. The one with highest throughput, lowest latency and least dropped packets should be the overall best TCP variants
+
+
+######Experiment 2: Fairness Between TCP Variants######
+
+Scenarios:
+1. Set the CBR flow (N2-N3) to a low rate(1Mbps for example), and simultaneously start the two flows (N1-N4 and N5-N6) of different TCP variants combination: Reno/Reno, NewReno/Reno, Vegas/Vegas, NewReno/Vega. Then compare their throughput after a relatively long time so that the two flows can arrive at the stable state.
+2. If their thoughputs are equal, change their start time to a different value (e.g. start Reno 5 seconds before NewReno) and compare again
+3. If still equal, change the CBR flow to a high rate, and compare the throughput, delay and packet dropping against each other TCP variant
+
+Result Analysis:
+1. If the throughputs of two flows are all equal under the abover 3 scenerios, we can conclude it's fair between these two TCP variants
+2. If the throughputs are not equal under certain circumstances, we should design more scenerios (like enlarging the gap between their start times), to verify whether it's a statistically significant result.
+
+
+######Experiment 3: Influence of Queuing######
+
+Scenarios:
+1. Start the TCP Reno flow (N1-N4) in combination with DropTail, then start high-rate CBR source (N5-N6) when the TCP flow is steady
+2. Start the TCP SACK flow in combination with DropTail, then start the CBR source when the TCP flow is steady
+3. Start the TCP Reno flow in combination with RED, then start the CBR source when the TCP flow is steady
+4. Start the TCP SACK flow in combination with RED, then start the CBR source when the TCP flow is steady
+
+Result Analysis:
+1. Compare the throughput of one TCP variant that uses different queuing disciplines, to discover whether each queuing discipline can provide fair bandwidth to the flow
+2. Compare the difference of end-to-end latency when a TCP variant is using DropTail and RED respectively
+3. Observe the change of the TCP flow when the CBR flow is added on the link, to find out the differences of their reaction to the creation of the CBR flow
+4. Compare the throughputs of TCP SACK that uses different queuing disciplines when the CBR rate is high, to determine whether RED is a good idea when dealing with SACK.
+
+How to run this experiment:
+1. enter "make" to run all 3 experiments
+2. enter "make exp1" or "make exp2" or "make exp3" to separately run single experiment

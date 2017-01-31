@@ -1,0 +1,67 @@
+#!/bin/bash
+
+USERNAME=""
+KEYFILE=""
+PORT=""
+
+CACHE_FOLDER = "~/SimpleCDN/temp"
+
+DNSSERVER_ADDR="cs5700cdnproject.ccs.neu.edu"
+
+# warning message when input params are erroneous
+usage="usage: runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>"
+
+while [[ $# -gt 0 ]]
+do
+option="$1"
+case $option in
+    -p)
+        PORT="$2"
+        shift
+        ;;
+    -o)
+        ORIGIN="$2"
+        shift
+        ;;
+    -n)
+        NAME="$2"
+        shift
+        ;;
+    -u)
+        USERNAME="$2"
+        shift
+        ;;
+    -i)
+        KEYFILE="$2"
+        shift
+        ;;
+    -*)
+        echo "runCDN: illegal option -$option"
+        echo $usage
+        exit -1
+        ;;
+esac
+shift
+done
+
+# make sure the port is provided in the command line
+if [ -z ${USERNAME} ] || [ -z ${KEYFILE} ] || [ -z ${PORT} ]
+then
+    echo $usage
+    echo "username, keyfile and port must be provided!"
+    exit -1
+fi
+
+echo "-----start stopping HTTP servers-----"
+while read line
+do
+    replicaIp=`echo ${line} | awk '{print $1}'`
+    echo "stop HTTP server on: ${replicaIp} ..."
+    ssh -i ${KEYFILE} ${USERNAME}@${replicaIp} "pkill -f ${PORT} && rm -rf ${CACHE_FOLDER}" </dev/null
+done<ec2_hosts
+
+echo "-----start stopping DNS server-----"
+echo "stop DNS server on: ${DNSSERVER_ADDR} ..."
+ssh -i ${KEYFILE} ${USERNAME}@${DNSSERVER_ADDR} "pkill -f ${PORT}" </dev/null
+
+echo "CDN has stopped!"
